@@ -32,40 +32,58 @@ function formatMessage(message, myNameInput) {
   }
 }
 
+const serverURL = `https://it3049c-chat.fly.dev/messages`;
+
 function fetchMessages() {
-  return [
-    {
-      id: 1,
-      text: "This is my message",
-      sender: "Yahya Gilany",
-      timestamp: 1537410673072
-    },
-    {
-      id: 2,
-      text: "This is another message",
-      sender: "Yahya Gilany",
-      timestamp: 1537410673072
-    },
-    {
-      id: 3,
-      text: "This is a message from someone else",
-      sender: "Someone Else",
-      timestamp: 1537410673072
+    return fetch(serverURL)
+        .then(response => response.json())
+        .catch(error => {
+            console.error('Error fetching messages:', error);
+            return [];
+        });
+}
+
+async function updateMessages() {
+    try {
+        const messages = await fetchMessages();
+        messages.forEach(message => {
+            const formattedMessage = formatMessage(message, nameInput.value);
+            chatBox.insertAdjacentHTML('beforeend', formattedMessage);
+        });
+    } catch (error) {
+        console.error('Error updating messages:', error);
     }
-  ];
 }
 
-function updateMessages() {
-  const messages = fetchMessages();
-  let formattedMessages = "";
-  messages.forEach(message => {
-      formattedMessages += formatMessage(message, nameInput.value);
-  });
-  chatBox.innerHTML = formattedMessages;
-}
-
-// Call updateMessages() to initially load messages
 updateMessages();
+
+const MILLISECONDS_IN_TEN_SECONDS = 10000;
+setInterval(updateMessages, MILLISECONDS_IN_TEN_SECONDS);
+
+function sendMessages(username, text) {
+    const newMessage = {
+        sender: username,
+        text: text,
+        timestamp: new Date().toISOString()
+    };
+
+    fetch(serverURL, {
+        method: `POST`,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newMessage)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to send message');
+        }
+        console.log('Message sent successfully');
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+    });
+}
 
 sendButton.addEventListener("click", function(sendButtonClickEvent) {
   sendButtonClickEvent.preventDefault();
@@ -73,14 +91,12 @@ sendButton.addEventListener("click", function(sendButtonClickEvent) {
   const messageText = myMessage.value;
 
   const newMessage = {
-    id: Math.floor(Math.random() * 1000), // Generating a random ID for the new message
+    id: Math.floor(Math.random() * 1000),
     text: messageText,
     sender: sender,
-    timestamp: Date.now() // Using current timestamp
+    timestamp: Date.now()
   };
 
   chatBox.innerHTML += formatMessage(newMessage, sender);
-
-  // Clear the message input field
   myMessage.value = "";
 });
